@@ -1,15 +1,21 @@
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 public class Segment {
     private CieLab centroid; // Average color in segment
-    private List<Pixel> pixels; // TODO: why Set and not List?
+    private Set<Pixel> pixels = new HashSet<>(); // TODO: why Set and not List?
     private int size;
     public final double connectivity, edgeValue, deviation; // The objectives
 
     public Segment() {
         this.connectivity = computeConnectivity();
         this.edgeValue = computeEdgeValue();
+        this.deviation = computeDeviation();
+        this.size = pixels.size();
+    }
+
+    public Segment(Set<Pixel> pixels) {
+        this();
+        this.pixels = pixels;
         this.size = pixels.size();
     }
 
@@ -27,6 +33,11 @@ public class Segment {
         }
     }
 
+    public void addPixels(Set<Pixel> pixels){
+        this.pixels.addAll(pixels);
+    }
+
+
     public CieLab computeCentroid() {
         float l = 0;
         float a = 0;
@@ -40,13 +51,14 @@ public class Segment {
     }
 
     public double computeEdgeValue() {
+        // Segment edge "contrast". Difference between neighboring colors on opposing sides of the edge
         // This objective should be maximized. Negative is returned so it should be minimized instead
         int edgeValue = 0;
         for (Pixel pixel : this.pixels) {
             Collection<Pixel> neighbours = pixel.getNeighbors().values();
             for (Pixel neighbour : neighbours) {
                 if (!this.containsPixel(neighbour)) { // If pixels are not in the same Segment
-                    edgeValue += CieLab.distance(pixel.color, neighbour.color);
+                    edgeValue += CieLab.computeDistance(pixel.color, neighbour.color);
                 }
             }
         }
@@ -54,6 +66,7 @@ public class Segment {
     }
 
     public double computeConnectivity() {
+        // Penalize segments with weirdly shaped edges.
         // This objective should be minimized
         double connectivity = 0;
         for (Pixel pixel : this.pixels) {
@@ -67,13 +80,16 @@ public class Segment {
     }
 
     public double computeDeviation() {
-        double deviation = 0;
-
-        deviation = pixels.stream()
-                .map(pixel -> CieLab.distance(pixel.color, this.centroid))
+        // Segment color deviation from centroid
+        // This objective should be minimized
+        double deviation = pixels.stream()
+                .map(pixel -> CieLab.computeDistance(pixel.color, this.centroid))
                 .reduce(0.0, (total, element) -> total + element);
         return deviation;
     }
 
+    public Set<Pixel> getPixels() {
+        return pixels;
+    }
 }
 

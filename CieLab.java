@@ -1,4 +1,4 @@
-import java.awt.color.ColorSpace;
+import java.util.Objects;
 
 public class CieLab {
 
@@ -76,6 +76,22 @@ public class CieLab {
         return new CieLab(lab_L, lab_A, lab_B);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == this)
+            return true;
+        if (!(o instanceof CieLab)) {
+            return false;
+        }
+        CieLab rgb = (CieLab) o;
+        return l == rgb.l && a == rgb.a && b == rgb.b;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(l, a, b);
+    }
+
     /**
      * Calculate Euclidean distance between two CieLab colors
      * Euclidean distance is the main advantage of using CieLab
@@ -84,7 +100,7 @@ public class CieLab {
      * @param two second color
      * @return distance
      */
-    public static double distance(CieLab one, CieLab two) {
+    public static double computeDistance(CieLab one, CieLab two) {
         return Math.sqrt(
                 Math.pow(one.l - two.l, 2)
                         + Math.pow(one.a - two.a, 2)
