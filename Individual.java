@@ -15,16 +15,16 @@ public class Individual {
     private double deviation, edgeValue, connectivity; // The three objectives to optimize
     private double crowdingDistance;
 
-    public Individual(ImageHandler image, List<Gene> genotype) {
-        this.image = image;
-        this.genotype = genotype;
-        createSegments();
-    }
-
     public Individual(ImageHandler image, int numSegments) {
         this.numSegments = numSegments;
         this.image = image;
-        generateMinSpanTree();
+        generateMinSpanTree(); // Generate random genotype
+        createSegments();
+    }
+
+    public Individual(ImageHandler image, List<Gene> genotype) {
+        this.image = image;
+        this.genotype = genotype;
         createSegments();
     }
 
@@ -75,6 +75,7 @@ public class Individual {
             updateGenotype(removedEdge.from, removedEdge.from);
         }
     }
+
     /**
      * Creates segments according to this individual's genotype
      */
@@ -84,24 +85,24 @@ public class Individual {
         int currentIndex;
         boolean[] visitedNodes = new boolean[genotype.size()];
         Arrays.fill(visitedNodes, false);
-        Set<Pixel> segment;
+        Set<Pixel> segmentPixels;
         for (int i = 0; i < genotype.size(); i++) {
             // If already visited, skip
             if (visitedNodes[i]) {
                 continue;
             }
             // Select pixel at index, add to segment and visitedNodes
-            segment = new HashSet<>();
+            segmentPixels = new HashSet<>();
             Pair<Integer, Integer> pixelIndex = GenAlg.genotypeIndexToCoords(i, image.getHeight());
             currentPixel = this.image.getPixels()[pixelIndex.x][pixelIndex.y];
-            segment.add(currentPixel);
+            segmentPixels.add(currentPixel);
             visitedNodes[i] = true;
             // Move on to neighbor as defined by genotype
             currentPixel = currentPixel.getNeighborByGene(genotype.get(i));
             currentIndex = GenAlg.coordsToGenotypeIndex(currentPixel.x, currentPixel.y, image.getHeight());
             // While the neighbor has not been visited previously, keep moving
             while (!visitedNodes[currentIndex]) {
-                segment.add(currentPixel);
+                segmentPixels.add(currentPixel);
                 visitedNodes[currentIndex] = true;
                 currentPixel = currentPixel.getNeighborByGene(genotype.get(currentIndex));
                 currentIndex = GenAlg.coordsToGenotypeIndex(currentPixel.x, currentPixel.y, image.getHeight());
@@ -111,7 +112,7 @@ public class Individual {
                 boolean flag = false;
                 for (Segment s : tempSegments) {
                     if (s.containsPixel(currentPixel)) {
-                        s.addPixels(segment);
+                        s.addPixels(segmentPixels);
                         flag = true;
                         break;
                     }
@@ -119,11 +120,11 @@ public class Individual {
                 // If we reach a node with NONE as Gene, which does not belong to another segment
                 // it should create a new segment
                 if (!flag) {
-                    tempSegments.add(new Segment(segment));
+                    tempSegments.add(new Segment(this, segmentPixels));
                 }
                 // Else create new segment
             } else {
-                tempSegments.add(new Segment(segment));
+                tempSegments.add(new Segment(this, segmentPixels));
             }
         }
         // Update number of segments
@@ -254,6 +255,14 @@ public class Individual {
         this.genotype = genotype;
     }
 
+    public int getNumSegments() {
+        return numSegments;
+    }
+
+    public List<Segment> getSegments() {
+        return segments;
+    }
+
     public int getRank() {
         return rank;
     }
@@ -292,5 +301,9 @@ public class Individual {
 
     public void setCrowdingDistance(double crowdingDistance) {
         this.crowdingDistance = crowdingDistance;
+    }
+
+    public ImageHandler getImage() {
+        return image;
     }
 }

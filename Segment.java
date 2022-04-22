@@ -2,21 +2,20 @@ import java.util.*;
 
 public class Segment {
     private CieLab centroid; // Average color in segment
-    private Set<Pixel> pixels = new HashSet<>(); // TODO: why Set and not List?
+
+    private final Individual individual;
+    private Set<Pixel> pixels; // TODO: why Set and not List?
     private int size;
     public final double connectivity, edgeValue, deviation; // The objectives
 
-    public Segment() {
+    public Segment(Individual individual, Set<Pixel> pixels) {
+        this.individual = individual;
+        this.pixels = pixels;
+        this.size = pixels.size();
+        updateCentroid();
         this.connectivity = computeConnectivity();
         this.edgeValue = computeEdgeValue();
         this.deviation = computeDeviation();
-        this.size = pixels.size();
-    }
-
-    public Segment(Set<Pixel> pixels) {
-        this();
-        this.pixels = pixels;
-        this.size = pixels.size();
     }
 
     /**
@@ -33,12 +32,11 @@ public class Segment {
         }
     }
 
-    public void addPixels(Set<Pixel> pixels){
+    public void addPixels(Set<Pixel> pixels) {
         this.pixels.addAll(pixels);
     }
 
-
-    public CieLab computeCentroid() {
+    public void updateCentroid() {
         float l = 0;
         float a = 0;
         float b = 0;
@@ -47,7 +45,7 @@ public class Segment {
             a += p.color.a;
             b += p.color.b;
         }
-        return new CieLab(l / size, a / size, b / size);
+        centroid = new CieLab(l / size, a / size, b / size);
     }
 
     public double computeEdgeValue() {
@@ -82,10 +80,30 @@ public class Segment {
     public double computeDeviation() {
         // Segment color deviation from centroid
         // This objective should be minimized
-        double deviation = pixels.stream()
+        return pixels.stream()
                 .map(pixel -> CieLab.computeDistance(pixel.color, this.centroid))
-                .reduce(0.0, (total, element) -> total + element);
-        return deviation;
+                .reduce(0.0, Double::sum);
+    }
+
+    /**
+     * Checks whether pixel is at the edge of segment
+     *
+     * @param pixel to check if is at edge (MUST BE IN THIS SEGMENT)
+     * @return true if pixel is in segment, false if not.
+     */
+    public boolean isPixelAtEdge(Pixel pixel) {
+        if (pixel.x == 0 ||
+                pixel.x == getIndividual().getImage().getWidth() - 1 ||
+                pixel.y == 0 ||
+                pixel.y == getIndividual().getImage().getHeight() - 1) {
+            return true;
+        }
+        return this.containsPixel(pixel.getNeighborByGene(Gene.DOWN))
+                && this.containsPixel(pixel.getNeighborByGene(Gene.RIGHT));
+    }
+
+    public Individual getIndividual() {
+        return individual;
     }
 
     public Set<Pixel> getPixels() {

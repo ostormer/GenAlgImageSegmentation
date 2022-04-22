@@ -1,29 +1,28 @@
 import java.util.*;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.*;
 
 public class GenAlg {
     private final ImageHandler image;
     private List<Individual> pop;
     private List<List<Individual>> rankedPopulation;
+    private final int genotypeLength;
 
     private final Executor executor = Executors.newFixedThreadPool(Params.threadPoolSize);
     private final Random rand = ThreadLocalRandom.current();
 
     public GenAlg(ImageHandler image) {
         this.image = image;
+        this.genotypeLength = image.getHeight() * image.getWidth();
     }
 
     public void runGA() {
         int currentGen = 0;
         generatePop();
         while (currentGen < Params.numGenerations) {
-            System.out.println(currentGen); // TODO: modify and improve
+            System.out.printf("Generation: %d%n", currentGen); // TODO: modify and improve print
             List<Individual> parents = parentSelection(this.pop);
             List<Individual> newPopulation = Collections.synchronizedList(new ArrayList<>());
-            for (int i = 0; i < Params.popSize / 2; i++) { // TODO: Why popSize / 2?
+            for (int i = 0; i < Params.popSize / 2; i++) { // Crossover pairs of parents from parentSelection
                 executor.execute(() -> {
                     Random threadLocalRand = ThreadLocalRandom.current();
                     Individual parent1 = parents.get(threadLocalRand.nextInt(parents.size()));
@@ -51,7 +50,7 @@ public class GenAlg {
         generatePop();
         rankPopulation(this.pop);
         while (currentGen < Params.numGenerations) {
-            System.out.println(currentGen);
+            System.out.printf("Generation: %d%n", currentGen); // TODO: modify and improve print
             List<Individual> parents = parentSelection(this.pop);
             List<Individual> newPopulation = Collections.synchronizedList(new ArrayList<>());
             for (int i = 0; i < Params.popSize / 2; i++) {
@@ -89,13 +88,17 @@ public class GenAlg {
         for (int i = 0; i < Params.popSize; i++) {
             tempExecutor.execute(() -> {
                 Individual ind = new Individual(this.image, ThreadLocalRandom.current().nextInt(5, 35)); // TODO: Test values
-                System.out.println("Individual created.");
+                System.out.printf("Individual created. segments: %d, genotype length: %d%n", ind.getNumSegments(), ind.getGenotype().size());
                 newPopulation.add(ind);
             });
         }
         tempExecutor.shutdown();
-        while (!tempExecutor.isTerminated()) {
-            ; // Wait for synchronizing threads
+        try {
+            if (!tempExecutor.awaitTermination(1, TimeUnit.MINUTES)){
+                System.out.println("Timeout while generating pop");
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
         System.out.println("Done creating initial population!");
         this.pop = newPopulation;
@@ -130,21 +133,19 @@ public class GenAlg {
     }
 
     private Pair<Individual, Individual> crossover(Individual parentA, Individual parentB, Random threadLocalRand) {
-
-        List<Gene> genotypeA = parentA.getGenotype();
-        List<Gene> genotypeB = parentB.getGenotype();
+        // Copy genotypes so separate threads can't modify them concurrently
+        // Or so it does not crash when both parents are the same
+        List<Gene> genotypeA = new ArrayList<>(parentA.getGenotype());
+        List<Gene> genotypeB = new ArrayList<>(parentB.getGenotype());
 
         // Crossover by slicing and swapping. Very simple, very dumb.
         if (threadLocalRand.nextDouble() < Params.crossoverProb) {
-            int genotypeLength = genotypeA.size();
-            System.out.println(genotypeLength);
             int sliceIndex = threadLocalRand.nextInt(genotypeLength);
             List<Gene> temp = new ArrayList<>(genotypeA.subList(sliceIndex, genotypeLength));
             genotypeA.subList(sliceIndex, genotypeLength).clear();
             genotypeA.addAll(genotypeB.subList(sliceIndex, genotypeLength));
             genotypeB.subList(sliceIndex, genotypeLength).clear();
             genotypeB.addAll(temp);
-
         }
         // Mutate
         genotypeA = mutateRandomGene(genotypeA, threadLocalRand);
@@ -155,9 +156,9 @@ public class GenAlg {
     /**
      * Mutates a random gene with probability Params.mutationProb
      *
-     * @param genotype
-     * @param threadLocalRand
-     * @return
+     * @param genotype Genotype to mutate
+     * @param threadLocalRand Random object to use within thread
+     * @return mutated genotype
      */
     public List<Gene> mutateRandomGene(List<Gene> genotype, Random threadLocalRand) {
         if (threadLocalRand.nextDouble() < Params.mutationProb) {
@@ -255,17 +256,17 @@ public class GenAlg {
         maxIndividual.setCrowdingDistance(Integer.MAX_VALUE);
         minIndividual.setCrowdingDistance(Integer.MAX_VALUE);
 
-        double maxMinSegmentationCriteriaDiff = maxIndividual.getObjectiveValue(objective);
-        maxMinSegmentationCriteriaDiff -= minIndividual.getObjectiveValue(objective);
+        double maxMinObjectiveDiff = maxIndividual.getObjectiveValue(objective);
+        maxMinObjectiveDiff -= minIndividual.getObjectiveValue(objective);
 
-        double segmentationCriteriaDiff;
+        double objectiveDiff;
 
         for (int i = 1; i < paretoFront.size() - 1; i++) {
-            segmentationCriteriaDiff = paretoFront.get(i + 1).getObjectiveValue(objective);
-            segmentationCriteriaDiff -= paretoFront.get(i - 1).getObjectiveValue(objective);
-            segmentationCriteriaDiff /= maxMinSegmentationCriteriaDiff;
+            objectiveDiff = paretoFront.get(i + 1).getObjectiveValue(objective);
+            objectiveDiff -= paretoFront.get(i - 1).getObjectiveValue(objective);
+            objectiveDiff /= maxMinObjectiveDiff;
             paretoFront.get(i).setCrowdingDistance(
-                    paretoFront.get(i).getCrowdingDistance() + segmentationCriteriaDiff
+                    paretoFront.get(i).getCrowdingDistance() + objectiveDiff
             );
         }
     }
