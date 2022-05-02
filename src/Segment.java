@@ -1,3 +1,10 @@
+package src;
+
+import src.CieLab;
+import src.Gene;
+import src.Individual;
+import src.Pixel;
+
 import java.util.*;
 
 public class Segment {
@@ -49,13 +56,13 @@ public class Segment {
     }
 
     public double computeEdgeValue() {
-        // Segment edge "contrast". Difference between neighboring colors on opposing sides of the edge
+        // src.Segment edge "contrast". Difference between neighboring colors on opposing sides of the edge
         // This objective should be maximized. Negative is returned so it should be minimized instead
         int edgeValue = 0;
         for (Pixel pixel : this.pixels) {
             Collection<Pixel> neighbours = pixel.getNeighbors().values();
             for (Pixel neighbour : neighbours) {
-                if (!this.containsPixel(neighbour)) { // If pixels are not in the same Segment
+                if (!this.containsPixel(neighbour)) { // If pixels are not in the same src.Segment
                     edgeValue += CieLab.computeDistance(pixel.color, neighbour.color);
                 }
             }
@@ -78,7 +85,7 @@ public class Segment {
     }
 
     public double computeDeviation() {
-        // Segment color deviation from centroid
+        // src.Segment color deviation from centroid
         // This objective should be minimized
         return pixels.stream()
                 .map(pixel -> CieLab.computeDistance(pixel.color, this.centroid))
@@ -98,8 +105,8 @@ public class Segment {
                 pixel.y == getIndividual().getImage().getHeight() - 1) {
             return true;
         }
-        return this.containsPixel(pixel.getNeighborByGene(Gene.DOWN))
-                && this.containsPixel(pixel.getNeighborByGene(Gene.RIGHT));
+        return !(this.containsPixel(pixel.getNeighborByGene(Gene.DOWN))
+                && this.containsPixel(pixel.getNeighborByGene(Gene.RIGHT)));
     }
 
     public Individual getIndividual() {

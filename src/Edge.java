@@ -1,5 +1,7 @@
+package src;
+
 /**
- * Edge between two neighboring pixels, used to compare color differences as described in the paper
+ * src.Edge between two neighboring pixels, used to compare color differences as described in the paper
  */
 public class Edge implements Comparable<Edge>{
     public Pixel from, to;

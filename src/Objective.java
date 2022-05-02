@@ -1,3 +1,5 @@
+package src;
+
 import java.util.Comparator;
 
 public enum Objective {

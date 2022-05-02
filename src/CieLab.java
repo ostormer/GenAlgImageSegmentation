@@ -1,3 +1,5 @@
+package src;
+
 import java.util.Objects;
 
 public class CieLab {
@@ -83,8 +85,8 @@ public class CieLab {
         if (!(o instanceof CieLab)) {
             return false;
         }
-        CieLab rgb = (CieLab) o;
-        return l == rgb.l && a == rgb.a && b == rgb.b;
+        CieLab lab = (CieLab) o;
+        return l == lab.l && a == lab.a && b == lab.b;
     }
 
     @Override
@@ -93,8 +95,8 @@ public class CieLab {
     }
 
     /**
-     * Calculate Euclidean distance between two CieLab colors
-     * Euclidean distance is the main advantage of using CieLab
+     * Calculate Euclidean distance between two src.CieLab colors
+     * Euclidean distance is the main advantage of using src.CieLab
      *
      * @param one first color
      * @param two second color

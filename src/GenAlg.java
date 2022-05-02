@@ -1,3 +1,5 @@
+package src;
+
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -18,7 +20,7 @@ public class GenAlg {
     public void runGA() {
         int currentGen = 0;
         generatePop();
-        while (currentGen < Params.numGenerations) {
+        while (currentGen < Params.numGenerations) { // Run GA
             System.out.printf("Generation: %d%n", currentGen); // TODO: modify and improve print
             List<Individual> parents = parentSelection(this.pop);
             List<Individual> newPopulation = Collections.synchronizedList(new ArrayList<>());
@@ -45,11 +47,11 @@ public class GenAlg {
         }
     }
 
-    public void runNSGA() {
+    public void runGA2() { // Genetic alg where parents may survive until next generation if they perform well
         int currentGen = 0;
         generatePop();
         rankPopulation(this.pop);
-        while (currentGen < Params.numGenerations) {
+        while (currentGen < Params.numGenerations) { // Run GA
             System.out.printf("Generation: %d%n", currentGen); // TODO: modify and improve print
             List<Individual> parents = parentSelection(this.pop);
             List<Individual> newPopulation = Collections.synchronizedList(new ArrayList<>());
@@ -88,7 +90,7 @@ public class GenAlg {
         for (int i = 0; i < Params.popSize; i++) {
             tempExecutor.execute(() -> {
                 Individual ind = new Individual(this.image, ThreadLocalRandom.current().nextInt(5, 35)); // TODO: Test values
-                System.out.printf("Individual created. segments: %d, genotype length: %d%n", ind.getNumSegments(), ind.getGenotype().size());
+                System.out.printf("src.Individual created. segments: %d, genotype length: %d%n", ind.getNumSegments(), ind.getGenotype().size());
                 newPopulation.add(ind);
             });
         }
@@ -116,7 +118,7 @@ public class GenAlg {
                     selected.add(parent1);
                 } else if (parent2.isStrictlyFitterThan(parent1)) {
                     selected.add(parent2);
-                } else if (!Params.useGA) {
+                } else if (!Params.useSimpleGA) {
                     if (parent1.getCrowdingDistance() > parent2.getCrowdingDistance()) {
                         selected.add(parent1);
                     } else if (parent1.getCrowdingDistance() < parent2.getCrowdingDistance()) {
@@ -154,7 +156,7 @@ public class GenAlg {
     }
 
     /**
-     * Mutates a random gene with probability Params.mutationProb
+     * Mutates a random gene with probability src.Params.mutationProb
      *
      * @param genotype Genotype to mutate
      * @param threadLocalRand Random object to use within thread
@@ -170,7 +172,7 @@ public class GenAlg {
         return genotype;
     }
 
-    private List<List<Individual>> rankPopulation(List<Individual> population) {
+    public List<List<Individual>> rankPopulation(List<Individual> population) {
         List<List<Individual>> rankedPopulation = new ArrayList<>();
         int currentRank = 1;
         while (population.size() > 0) {
@@ -279,6 +281,18 @@ public class GenAlg {
         int y = i % height;
         int x = Math.floorDiv(i, height);
         return new Pair<>(x, y);
+    }
+
+    public ImageHandler getImage() {
+        return image;
+    }
+
+    public List<Individual> getPop() {
+        return pop;
+    }
+
+    public List<List<Individual>> getRankedPopulation() {
+        return rankedPopulation;
     }
 
 }

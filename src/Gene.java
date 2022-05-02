@@ -1,3 +1,5 @@
+package src;
+
 public enum Gene {
     LEFT, RIGHT, UP, DOWN, NONE;
 

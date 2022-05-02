@@ -1,5 +1,6 @@
+package src;
+
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * A single segmentation
@@ -11,6 +12,7 @@ public class Individual {
 
     private int rank;
     private int numSegments; // Number of segments
+    private int prevMergeableSegments = 0; // number of segments that should be merged, before previous merge
     private List<Segment> segments = new ArrayList<>();
     private double deviation, edgeValue, connectivity; // The three objectives to optimize
     private double crowdingDistance;
@@ -117,7 +119,7 @@ public class Individual {
                         break;
                     }
                 }
-                // If we reach a node with NONE as Gene, which does not belong to another segment
+                // If we reach a node with NONE as src.Gene, which does not belong to another segment
                 // it should create a new segment
                 if (!flag) {
                     tempSegments.add(new Segment(this, segmentPixels));
@@ -134,9 +136,9 @@ public class Individual {
     }
 
     /**
-     * An Individual dominates another if it beats it on all three objectives
+     * An src.Individual dominates another if it beats it on all three objectives
      *
-     * @param other Individual to compare to.
+     * @param other src.Individual to compare to.
      * @return whether this dominates other.
      */
     public boolean dominates(Individual other) {
@@ -146,7 +148,7 @@ public class Individual {
     }
 
     public boolean isStrictlyFitterThan(Individual other) {
-        if (Params.useGA) {
+        if (Params.useSimpleGA) {
             return this.computeCombinedFitness() < other.computeCombinedFitness();
         } else {
             return this.getRank() < other.getRank();
@@ -163,7 +165,7 @@ public class Individual {
     public void mutationMergeSegments(Random threadLocalRandom) {
         // Find segments with fewer pixels than minimumSegmentSize
         List<Segment> candidates = segments.stream()
-                .filter(segment -> segment.getPixels().size() < Params.minimumSegmentSize).toList();
+                .filter(segment -> segment.getPixels().size() < Params.mergeableSegmentLimit).toList();
         if (candidates.size() == 0) {
             return;
         }
@@ -176,6 +178,41 @@ public class Individual {
             updateGenotype(merge.to, merge.from);
             createSegments();
         }
+    }
+
+    public void mergeSmallSegments() {
+        this.mergeSmallSegments(0);
+    }
+
+    /**
+     * Find segments under the merge limit and merge them to their best neighbor
+     * Runs recursively until it is done merging
+     * @param merge_number set this to 0 when calling it, recursive calls increment it
+     */
+    public void mergeSmallSegments(int merge_number){
+        List<Segment> mergeableSegments = new ArrayList<>();
+        // Find segments with fewer pixels than threshold
+        for (Segment s: this.segments){
+            if (s.getPixels().size() < Params.mergeableSegmentLimit){
+                mergeableSegments.add(s);
+            }
+        }
+        // If no merge was made previous run, increment tries counter
+        if (mergeableSegments.size() == this.prevMergeableSegments) merge_number++;
+        // If no merge is needed or tries exceeded; exit condition
+        if (mergeableSegments.size() == 0 || merge_number > Params.mergeTries) return;
+        // Find the best edge from each segment to merge
+        for (Segment s: mergeableSegments){
+            Edge merge = getBestSegmentEdge(s);
+            if (merge != null){
+                updateGenotype(merge.to, merge.from);
+            }
+        }
+        // Update prevMergeableSegments and create segments based on new genotype
+        this.prevMergeableSegments = mergeableSegments.size();
+        this.createSegments();
+        // Recursively run until exit condition is reached
+        this.mergeSmallSegments(merge_number);
     }
 
     private void updateGenotype(Pixel from, Pixel to) {
@@ -196,7 +233,7 @@ public class Individual {
         // Iterate through pixels in segment, find neighbours
         for (Pixel p : segment.getPixels()) {
             for (Pixel n : p.getCardinalNeighbors().values()) {
-                // Assign neighbours who are not in the same segment to a new Edge candidate
+                // Assign neighbours who are not in the same segment to a new src.Edge candidate
                 if (!segment.containsPixel(n)) {
                     Edge temp = new Edge(p, n);
                     if (temp.distance < bestDistance) {
@@ -215,7 +252,7 @@ public class Individual {
         // Iterate through pixels in segment, find neighbours
         for (Pixel p : segment.getPixels()) {
             for (Pixel n : p.getCardinalNeighbors().values()) {
-                // Assign neighbours who are not in the same segment to a new Edge candidate
+                // Assign neighbours who are not in the same segment to a new src.Edge candidate
                 if (!segment.containsPixel(n)) {
                     candidates.add(new Edge(p, n));
                 }

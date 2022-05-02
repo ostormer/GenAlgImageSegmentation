@@ -1,7 +1,12 @@
+package src;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.WritableRaster;
 import java.io.*;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -13,14 +18,14 @@ public class ImageHandler {
     private Pixel[][] pixels; // To hold the actual image
 
     /**
-     * @param directory path of directory containing image file called 'Test image.jpg'
+     * @param imageName name of directory in train folder containing image file called 'Test image.jpg'
      */
-    public ImageHandler(String directory) throws IOException {
-        File file = new File(directory + "/Test image.jpg");
+    public ImageHandler(String imageName) throws IOException {
+        File file = new File("train/" + imageName + "/Test image.jpg");
         InputStream input = new FileInputStream(file);
         this.image = ImageIO.read(input);
 
-        this.name = directory;
+        this.name = imageName;
         this.width = image.getWidth();
         this.height = image.getHeight();
 
@@ -42,13 +47,33 @@ public class ImageHandler {
         }
     }
 
-    public void save(String directory, Individual solution, int segmentationType) {
+    /**
+     * Copy all pixels of a bufferedImage, so original instance remains unedited
+     * @param bi original image
+     * @return copy of bufferedImage
+     */
+    private static BufferedImage deepCopy(BufferedImage bi) {
+        ColorModel cm = bi.getColorModel();
+        boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
+        WritableRaster raster = bi.copyData(null);
+        return new BufferedImage(cm, raster, isAlphaPremultiplied, null);
+    }
+    public void save(Individual solution, int segmentationType, int individualID) {
         if (segmentationType != 1 && segmentationType != 2 && segmentationType != 3) {
-            throw new IllegalArgumentException("segmentationType must be either 1 (green on image) or 2 (black on white).");
+            throw new IllegalArgumentException("segmentationType must be either 1 (green on image), 2 (black on white) or 3 (colors)");
         }
-        String filename = name + "_t" + segmentationType + "_" + solution.getNumSegments() + ".jpg"; // TODO: Add more info to filename
-        File output = new File(directory + "/" + filename);
-        BufferedImage outImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Path directory = Path.of(Params.outputDirectory, name, "type" + Integer.toString(segmentationType));
+        String filename = "t" + segmentationType
+                + "_s%02d".formatted(solution.getNumSegments())
+//                + "_id%02d".formatted(individualID)
+                + "_ev%07.0f".formatted(solution.getEdgeValue())
+                + "_c%04.0f".formatted(solution.getConnectivity())
+                + "_d%05.0f".formatted(solution.getDeviation())
+                + ".png";
+        File output = new File( directory + "/" + filename);
+        BufferedImage outImage = deepCopy(image);
+        // Copy contents of image into outImage
+
 
         int outlineColor;
         if (segmentationType == 1) {
@@ -56,7 +81,7 @@ public class ImageHandler {
             for (Segment segment : solution.getSegments()) {
                 for (Pixel pixel : segment.getPixels()) {
                     if (segment.isPixelAtEdge(pixel)) {
-                        image.setRGB(pixel.x, pixel.y, outlineColor);
+                        outImage.setRGB(pixel.x, pixel.y, outlineColor);
                     }
                 }
             }
@@ -66,14 +91,13 @@ public class ImageHandler {
             for (Segment segment : solution.getSegments()) {
                 for (Pixel pixel : segment.getPixels()) {
                     if (segment.isPixelAtEdge(pixel)) {
-                        image.setRGB(pixel.x, pixel.y, outlineColor);
+                        outImage.setRGB(pixel.x, pixel.y, outlineColor);
                     } else {
-                        image.setRGB(pixel.x, pixel.y, fillColor);
+                        outImage.setRGB(pixel.x, pixel.y, fillColor);
                     }
                 }
             }
         } else {
-            outlineColor = new Color(0, 0, 0).getRGB();
             Random rand = new Random();
             for (Segment segment : solution.getSegments()) {
                 // Select random color for segment
@@ -83,22 +107,23 @@ public class ImageHandler {
                 final float luminance = 0.9f;
                 int fillColor = Color.getHSBColor(hue, saturation, luminance).getRGB();
                 for (Pixel pixel : segment.getPixels()) {
-                    image.setRGB(pixel.x, pixel.y, fillColor);
-//                    if (segment.isPixelAtEdge(pixel)) {
-//                        image.setRGB(pixel.x, pixel.y, outlineColor);
-//                    } else {
-//                        image.setRGB(pixel.x, pixel.y, fillColor);
-//                    }
+                    outImage.setRGB(pixel.x, pixel.y, fillColor);
                 }
             }
         }
         // Finished drawing all pixels, save image
         try {
-            ImageIO.write(image, "jpg", output);
+            ImageIO.write(outImage, "png", output);
         } catch (
                 IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static void deleteAllFilesInDir(Path path){
+        for (File file : path.toFile().listFiles())
+            if (!file.isDirectory())
+                file.delete();
     }
 
     private Map<Integer, Pixel> findPixelNeighbors(int x, int y) {
