@@ -136,7 +136,7 @@ public class Individual {
     }
 
     /**
-     * An src.Individual dominates another if it beats it on all three objectives
+     * An Individual dominates another if it beats it on all three objectives
      *
      * @param other src.Individual to compare to.
      * @return whether this dominates other.
@@ -263,7 +263,6 @@ public class Individual {
                 : null;
     }
 
-
     public double getObjectiveValue(Objective objective) {
         return switch (objective) {
             case CONNECTIVITY -> connectivity;
@@ -288,10 +287,6 @@ public class Individual {
         return genotype;
     }
 
-    public void setGenotype(List<Gene> genotype) {
-        this.genotype = genotype;
-    }
-
     public int getNumSegments() {
         return numSegments;
     }
@@ -312,24 +307,12 @@ public class Individual {
         return deviation;
     }
 
-    public void setDeviation(double deviation) {
-        this.deviation = deviation;
-    }
-
     public double getEdgeValue() {
         return edgeValue;
     }
 
-    public void setEdgeValue(double edgeValue) {
-        this.edgeValue = edgeValue;
-    }
-
     public double getConnectivity() {
         return connectivity;
-    }
-
-    public void setConnectivity(double connectivity) {
-        this.connectivity = connectivity;
     }
 
     public double getCrowdingDistance() {

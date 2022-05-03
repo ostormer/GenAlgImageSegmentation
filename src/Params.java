@@ -1,14 +1,15 @@
 package src;
 
 public class Params {
-    public static final String imageName = "118035"; // Use folder name in training_images
+    public static final String imageName = "42044 (eval)(single objective)"; // Use folder name in training_images
     // Create popsize/2 initial population, is doubled on first generation
-    public static final int numGenerations = 100;
-    public static final int popSize = 20;
-    public static final int parentSelectionSize = 10;
+    public static final int numGenerations = 10;
+    public static final int popSize = 40;
+    public static final int parentSelectionSize = 20;
     public static final double tournamentProb = 0.8;
     public static final double crossoverProb = 0.8;
     public static final double mutationProb = 0.2;
+    public static final double mutationMergeProb = 0.02;
     // Probability of merging best edge, 1-p for random edge
     public static final double mergeMutationEpsilon = 0.7;
     public static final int threadPoolSize = 10;

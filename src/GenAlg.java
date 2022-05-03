@@ -32,6 +32,12 @@ public class GenAlg {
                     Pair<Individual, Individual> offspring = crossover(parent1, parent2, threadLocalRand);
                     newPopulation.add(offspring.x);
                     newPopulation.add(offspring.y);
+                    if (rand.nextDouble() < Params.mutationMergeProb) {
+                        offspring.x.mutationMergeSegments(threadLocalRand);
+                    }
+                    if (rand.nextDouble() < Params.mutationMergeProb) {
+                        offspring.y.mutationMergeSegments(threadLocalRand);
+                    }
                 });
             }
             while (newPopulation.size() != Params.popSize) {
@@ -61,6 +67,12 @@ public class GenAlg {
                     Individual parent1 = parents.get(threadLocalRand.nextInt(parents.size()));
                     Individual parent2 = parents.get(threadLocalRand.nextInt(parents.size()));
                     Pair<Individual, Individual> offspring = crossover(parent1, parent2, threadLocalRand);
+                    if (rand.nextDouble() < Params.mutationMergeProb) {
+                        offspring.x.mutationMergeSegments(threadLocalRand);
+                    }
+                    if (rand.nextDouble() < Params.mutationMergeProb) {
+                        offspring.y.mutationMergeSegments(threadLocalRand);
+                    }
                     newPopulation.add(offspring.x);
                     newPopulation.add(offspring.y);
                 });
@@ -124,8 +136,12 @@ public class GenAlg {
                     } else if (parent1.getCrowdingDistance() < parent2.getCrowdingDistance()) {
                         selected.add(parent2);
                     }
-                } else {
-                    selected.add(rand.nextInt(2) == 0 ? parent1 : parent2);
+                } else { // Using simple GA with weighted fitness
+                    if (parent1.computeCombinedFitness() > parent2.computeCombinedFitness()) {
+                        selected.add(parent1);
+                    } else {
+                        selected.add(parent2);
+                    }
                 }
             } else { // There is no competition, random is chosen
                 selected.add(rand.nextInt(2) == 0 ? parent1 : parent2);
@@ -192,9 +208,8 @@ public class GenAlg {
 
     private List<Individual> findDominatingSet(List<Individual> population) {
         List<Individual> nonDominatedList = new ArrayList<>();
-        // TODO: Rewrite to while loop gradually emptying copy of population. Should be faster
         // Begin with first member of population
-        nonDominatedList.add(population.get(0));
+//        nonDominatedList.add(population.get(0));
         Set<Individual> dominatedSet = new HashSet<>();
 
         for (Individual individual : population) {
